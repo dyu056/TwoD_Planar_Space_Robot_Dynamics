@@ -1,0 +1,7 @@
+function d_state = Get_Robot_Dynamic_Matrices(t, state, tau, robot_dynamics_constants)
+    q = state(1:3);
+    q_dot = state(4:6);
+    
+    inertial_term_matrix, coriolis_term = Get_Planar_Dynamic_Matrix(q, q_dot, robot_dynamics_constants);
+    
+end
