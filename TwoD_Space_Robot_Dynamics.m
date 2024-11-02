@@ -9,7 +9,7 @@ initial_q_dot = [0; 0; 0; 0; 0];     % Initial joint velocities, e.g., radians/s
 initial_state = [initial_q; initial_q_dot]; % Combined state vector
 
 % Define the torque input tau (can be a constant or a function of time)
-generalized_force = [0.0; 0.0; 0.0; 0.5; 0.0]; % Constant torques for each joint, for example
+generalized_force = [0.0; 0.0; 0.0; 1.0; 1.0]; % Constant torques for each joint, for example
 torque = generalized_force(4:5);
 
 robot_dynamics_constants.m0 = 500;

@@ -82,7 +82,5 @@ function [H, F] = Get_Planar_Dynamic_Matrix(state_vector, state_dot, robot_dynam
          h31, h32, h33, h34, h35;
          h41, h42, h43, h44, h45;
          h51, h52, h53, h54, h55];
-
-    disp(H - transpose(H))
     % F = [f1; f2; f3; f4; f5];
 end
