@@ -9,9 +9,8 @@ function d_state = Planar_Space_Robot_Dynamics_with_Control(t, state,  robot_dyn
     q_dot = state(6:10);
 
     [reference] = update_reference(joint_angles_list, [q(4),q(5)]);
-    
     [inertial_term_matrix, coriolis_term] = Get_Planar_Dynamic_Matrix(q, q_dot, robot_dynamics_constants);
-    
+    %[rg] = get_center_of_mass(state, robot_dynamics_constants) 
     tau = control_logic(q, q_dot, reference, control_constants, robot_dynamics_constants);
     %Dq = tau - coriolis_term;
     Dq = tau - coriolis_term;

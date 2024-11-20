@@ -12,7 +12,7 @@ function animate_robot_with_reference_trajectory(trajectory, time_data, fixed_ti
     x_original = trajectory(:, 1);
     y_original = trajectory(:, 2);
     theta0_original = trajectory(:, 3);
-    theta1_original = trajectory(:, 4) + pi/4; % Initial theta is pi/4 in our system
+    theta1_original = trajectory(:, 4); % Initial theta is pi/4 in our system
     theta2_original = trajectory(:, 5);
 
     % Create new time vector with fixed timestep
@@ -48,8 +48,8 @@ function animate_robot_with_rotating_square_base(trajectory, robot_dynamics_cons
     ylabel('Y-axis');
     
     % Set axis limits (adjust based on your workspace)
-    xlim([-4, 4]);
-    ylim([-4, 4]);
+    xlim([-1, 3]);
+    ylim([-2, 2]);
 
     % Plot the reference trajectory
     if ~isempty(reference_trajectory)
@@ -67,8 +67,8 @@ function animate_robot_with_rotating_square_base(trajectory, robot_dynamics_cons
 
         % Compute joint positions
         % Base (centered at x, y) to first joint
-        base_corner_x = x + b0 * cos(theta0 + pi/4); % Upper-right diagonal corner
-        base_corner_y = y + b0 * sin(theta0 + pi/4);
+        base_corner_x = x + b0 * cos(theta0); % Upper-right diagonal corner
+        base_corner_y = y + b0 * sin(theta0);
         
         % First joint to second joint
         joint1_x = base_corner_x + l1 * cos(theta0 + theta1);
@@ -118,11 +118,12 @@ function draw_rotating_square_base(center_x, center_y, side_length, theta)
     half_side = side_length / 2;
 
     % Define the unrotated square corners relative to the center
+    digonal_length = sqrt(2 * half_side ^2);
     corners = [
-        -half_side, -half_side; % Bottom-left
-         half_side, -half_side; % Bottom-right
-         half_side,  half_side; % Top-right
-        -half_side,  half_side; % Top-left
+        -digonal_length, 0; % Bottom-left
+         0, -digonal_length; % Bottom-right
+         digonal_length,  0; % Top-right
+        0,  digonal_length; % Top-left
     ];
 
     % Rotation matrix

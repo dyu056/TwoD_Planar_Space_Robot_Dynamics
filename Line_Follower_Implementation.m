@@ -14,26 +14,21 @@ robot_dynamics_constants.Ic0 = 83.3333;
 robot_dynamics_constants.Ic1 = 2;
 robot_dynamics_constants.Ic2 = 2;
 
-%% Test forward kinematic
+[center_of_mass] = get_center_of_mass(initial_q, robot_dynamics_constants)
+
+% test
+[rb] = get_body_position(center_of_mass, initial_q(3), initial_q(4), initial_q(5), robot_dynamics_constants)
+
+%% Forward kinematic test
 test = initial_q;
+test = [0; 0; 0; 0; 0];
 [T_inertial_end, x_end, y_end] = forward_kinematics(test(1), test(2), test(3), test(4), test(5), robot_dynamics_constants);
+[xend_naive, yend_naive] = forward_kinematic_naive(test, robot_dynamics_constants);
 disp(T_inertial_end);
+disp(xend_naive)
+disp(yend_naive)
 disp(x_end);
 disp(y_end);
-
-%% Test inverse kinematic
-clc;
-target_pos = [0.5; 0.4];
-[joint_angles] = inverse_kinematic(target_pos(1), target_pos(2), [0;0], robot_dynamics_constants);
-
-% Forward verify
-test = [0; 0; 0; joint_angles(1); joint_angles(2)];
-[T_inertial_end, x_end, y_end] = forward_kinematics(test(1), test(2), test(3), test(4), test(5), robot_dynamics_constants);
-
-disp("fucker")
-disp(x_end);
-disp(y_end);
-disp(joint_angles)
 
 %% Guidance trajectory setup
 % Mission: Approaching the axis horizontally and then approach vertically
@@ -44,11 +39,12 @@ disp(joint_angles)
 % 3: Follow this array of points.
 [T_inertial_end, x_end, y_end] = forward_kinematics(initial_q(1), initial_q(2), initial_q(3), initial_q(4), initial_q(5), robot_dynamics_constants);
 start_pos = [x_end, y_end];
-line_start = [0, y_end];
-line_end = [0, 2.4];
+%line_start = [0, y_end];
+%line_end = [0, 2.4];
 
 % Key points (2D space)
-key_points = [start_pos; line_start; line_end];
+%key_points = [start_pos; line_start; line_end];
+key_points = [start_pos; [2, 1]; [1,1]; [1,0.4]; start_pos];
 % Number of points to generate between each key point
 num_points = 20;
 % Generate the trajectory
@@ -65,7 +61,7 @@ for i = 1:size(trajectory, 1)
     fprintf('Point %d: (%.2f, %.2f)\n', i, current_point(1), current_point(2));
 
     % Add any operations you'd like to perform on each point here
-    [joint_angles] = inverse_kinematic(current_point(1), current_point(2), initial_guess, robot_dynamics_constants);
+    [joint_angles] = inverse_kinematic(current_point(1), current_point(2), initial_guess, robot_dynamics_constants, center_of_mass);
     joint_angle_trajectories = [joint_angle_trajectories, joint_angles];
     initial_guess = joint_angles;
 end
@@ -75,9 +71,9 @@ end_effector_pos = [];
 for i = 1:size(joint_angle_trajectories, 1)
     % Get the current point
     current_point = joint_angle_trajectories(i, :);
-
+    [rb] = get_body_position(center_of_mass, 0, current_point(1), current_point(2), robot_dynamics_constants);
     % Add any operations you'd like to perform on each point here
-    [~, x_end, y_end] = forward_kinematics(0, 0, 0, current_point(1), current_point(2), robot_dynamics_constants);
+    [~, x_end, y_end] = forward_kinematics(rb(1), rb(2), 0, current_point(1), current_point(2), robot_dynamics_constants);
     end_effector_pos = [end_effector_pos; [x_end, y_end]];
 end
 
@@ -106,7 +102,7 @@ axis equal
 %% Start the mission
 clc
 % Define time span with 0.1 s step
-tspan = 0:0.1:100; % From 0 to 10 seconds, with a step of 0.1s
+tspan = 0:0.1:500; % From 0 to 10 seconds, with a step of 0.1s
 % Integrate using ode45 with specified output times
 
 global index; % Index for goal points
@@ -208,3 +204,43 @@ fixed_timestep = 0.1; % 0.1 seconds
 robot_dynamics_constants.link_radius = 0.12;
 % Animate the robot with interpolated trajectory and reference trajectory
 animate_robot_with_reference_trajectory(state, t, fixed_timestep, robot_dynamics_constants, trajectory);
+
+%% Get COM trajectory (Should be one dot for correct kinematic and dynamic)
+rg_trajectory = get_center_of_mass_trajectory(state, robot_dynamics_constants);
+
+figure
+plot(rg_trajectory(:,1), rg_trajectory(:,2),'o');
+xlabel("X")
+ylabel("Y")
+title("COM position")
+xlim([-1,1])
+ylim([-1,1])
+
+%% Test forward kinematic
+
+% Codes below are for testing purposes.
+
+
+test = initial_q;
+test = [1; 0; 3; 2; 1];
+[T_inertial_end, x_end, y_end] = forward_kinematics(test(1), test(2), test(3), test(4), test(5), robot_dynamics_constants);
+[xend_naive, yend_naive] = forward_kinematic_naive(test, robot_dynamics_constants);
+disp(T_inertial_end);
+disp(xend_naive)
+disp(yend_naive)
+disp(x_end);
+disp(y_end);
+
+%% Test inverse kinematic
+clc;
+target_pos = [0.5; 0.4];
+[joint_angles] = inverse_kinematic(target_pos(1), target_pos(2), [0;0], robot_dynamics_constants, rg);
+
+% Forward verify
+test = [0; 0; 0; joint_angles(1); joint_angles(2)];
+[T_inertial_end, x_end, y_end] = forward_kinematics(test(1), test(2), test(3), test(4), test(5), robot_dynamics_constants);
+
+disp("fucker")
+disp(x_end);
+disp(y_end);
+disp(joint_angles)
