@@ -39,6 +39,7 @@ function [tau] = joint_angle_control(q, q_dot, target_theta, control_constants)
 
     % Combine torques into output vector
     tau = [fx; fy; tau0; tau1; tau2];
+    %tau = [0; 0; 0; tau1; tau2]; % Let's see if I can dump the base control
 end
 
 function diff = angle_difference(angle1, angle2, isDegrees)

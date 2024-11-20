@@ -1,5 +1,5 @@
 clc; clear;
-%% Goal 1: Successfully track a point!!!!
+%% Initial setup
 initial_q = [0; 0; 0; 0; 0];         % Initial joint angles (or positions), e.g., radians or meters
 initial_q_dot = [0; 0; 0; 0; 0];     % Initial joint velocities, e.g., radians/s or m/s
 initial_state = [initial_q; initial_q_dot]; % Combined state vector
@@ -13,9 +13,6 @@ robot_dynamics_constants.l2 = 1;
 robot_dynamics_constants.Ic0 = 83.3333;
 robot_dynamics_constants.Ic1 = 2;
 robot_dynamics_constants.Ic2 = 2;
-
-control_constant.Kp = 50;
-control_constant.Kd = 50;
 
 %% Test forward kinematic
 test = initial_q;
@@ -37,22 +34,90 @@ disp("fucker")
 disp(x_end);
 disp(y_end);
 disp(joint_angles)
-%% Calculation
+
+%% Guidance trajectory setup
+% Mission: Approaching the axis horizontally and then approach vertically
 % Mission sequence:
 % 1: Define trajectories to follow ahead. Here I would use a point to
 % represent it.
 % 2: Store it on your computer 
 % 3: Follow this array of points.
+[T_inertial_end, x_end, y_end] = forward_kinematics(initial_q(1), initial_q(2), initial_q(3), initial_q(4), initial_q(5), robot_dynamics_constants);
+start_pos = [x_end, y_end];
+line_start = [0, y_end];
+line_end = [0, 2.4];
 
-% With point input, calculate joint angle needed
-target_pos = [0.5; 0.4];
-[joint_angles] = inverse_kinematic(target_pos(1), target_pos(2), [0;0], robot_dynamics_constants);
-reference = joint_angles;
+% Key points (2D space)
+key_points = [start_pos; line_start; line_end];
+% Number of points to generate between each key point
+num_points = 20;
+% Generate the trajectory
+trajectory = simple_trajectory_generator(key_points, num_points);
+joint_angle_trajectories = [];
+initial_guess = [0;0];
 
+% Form doable joint angle list
+for i = 1:size(trajectory, 1)
+    % Get the current point
+    current_point = trajectory(i, :);
+
+    % Display the point
+    fprintf('Point %d: (%.2f, %.2f)\n', i, current_point(1), current_point(2));
+
+    % Add any operations you'd like to perform on each point here
+    [joint_angles] = inverse_kinematic(current_point(1), current_point(2), initial_guess, robot_dynamics_constants);
+    joint_angle_trajectories = [joint_angle_trajectories, joint_angles];
+    initial_guess = joint_angles;
+end
+joint_angle_trajectories = transpose(joint_angle_trajectories);
+%% Verify
+end_effector_pos = [];
+for i = 1:size(joint_angle_trajectories, 1)
+    % Get the current point
+    current_point = joint_angle_trajectories(i, :);
+
+    % Add any operations you'd like to perform on each point here
+    [~, x_end, y_end] = forward_kinematics(0, 0, 0, current_point(1), current_point(2), robot_dynamics_constants);
+    end_effector_pos = [end_effector_pos; [x_end, y_end]];
+end
+
+%% Plot the trajectory
+figure;
+plot(trajectory(:, 1), trajectory(:, 2), '-o');
+hold on;
+plot(key_points(:, 1), key_points(:, 2), 'r*', 'MarkerSize', 10);
+plot(end_effector_pos(:, 1), end_effector_pos(:, 2), '-x');
+legend('Trajectory', 'Key Points', 'End effector actual');
+xlabel('X');
+ylabel('Y');
+title('Generated Straight-Line Trajectory');
+grid on;
+axis equal
+
+%% Plot joint angle trajectory
+figure;
+plot(joint_angle_trajectories(:, 1), joint_angle_trajectories(:, 2), '-o');
+xlabel('theta1');
+ylabel('theta2');
+title('Generated joint angle Trajectory');
+grid on;
+axis equal
+
+%% Start the mission
+clc
 % Define time span with 0.1 s step
-tspan = 0:0.1:10; % From 0 to 10 seconds, with a step of 0.1s
+tspan = 0:0.1:100; % From 0 to 10 seconds, with a step of 0.1s
 % Integrate using ode45 with specified output times
-[t, state] = ode113(@(t, state) Planar_Space_Robot_Dynamics_with_Control(t, state, robot_dynamics_constants, reference, control_constant), tspan, initial_state);
+
+global index; % Index for goal points
+index = 1;
+
+control_constant.Kp = 50;
+control_constant.Kd = 50;
+
+joint_angles_list = joint_angle_trajectories;
+
+[t, state] = ode113(@(t, state) Planar_Space_Robot_Dynamics_with_Control(t, state, robot_dynamics_constants, joint_angles_list, control_constant), tspan, initial_state);
 
 % Extract results
 q_results = state(:, 1:5);       % Joint positions over time
@@ -99,15 +164,16 @@ ylabel('y');
 % Adjust layout for better visibility
 sgtitle('Joint Angles and Positions Over Time'); % Optional overarching title
 
-%% Plot out end effector position
+% Compute end effector positions
 end_effector_positions = compute_end_effector_positions(q_results, t, robot_dynamics_constants);
 x_end = end_effector_positions(:, 1);
 y_end = end_effector_positions(:, 2);
-% Create subplots
+
+% Create figure for subplots
 figure;
 
 % Subplot 1: Time vs X
-subplot(2, 1, 1);
+subplot(3, 1, 1); % Change to 3 rows for an additional subplot
 plot(t, x_end, 'LineWidth', 2);
 xlabel('Time (t)');
 ylabel('X_{end}');
@@ -115,9 +181,30 @@ title('Time vs X_{end}');
 grid on;
 
 % Subplot 2: Time vs Y
-subplot(2, 1, 2);
+subplot(3, 1, 2);
 plot(t, y_end, 'LineWidth', 2);
 xlabel('Time (t)');
 ylabel('Y_{end}');
 title('Time vs Y_{end}');
 grid on;
+
+% Subplot 3: Trajectory Covered (X vs Y)
+subplot(3, 1, 3);
+plot(x_end, y_end, 'LineWidth', 2);
+hold on 
+plot(trajectory(:, 1), trajectory(:, 2), '-o');
+hold off
+xlabel('X_{end}');
+ylabel('Y_{end}');
+title('Trajectory Covered (X vs Y)');
+grid on;
+axis equal; % Ensure equal scaling for X and Y axes
+
+
+%% Animate the robot with interpolated trajectory and reference trajectory
+% Fixed timestep
+fixed_timestep = 0.1; % 0.1 seconds
+
+robot_dynamics_constants.link_radius = 0.12;
+% Animate the robot with interpolated trajectory and reference trajectory
+animate_robot_with_reference_trajectory(state, t, fixed_timestep, robot_dynamics_constants, trajectory);

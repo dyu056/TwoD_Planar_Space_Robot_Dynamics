@@ -22,7 +22,7 @@ robot_dynamics_constants.Ic0 = 83.3333;
 robot_dynamics_constants.Ic1 = 2;
 robot_dynamics_constants.Ic2 = 2;
 
-% Define time span with 0.1 s step
+%% Define time span with 0.1 s step
 tspan = 0:0.1:10; % From 0 to 10 seconds, with a step of 0.1s
 
 %% Integrate using ode45 with specified output times
@@ -35,7 +35,7 @@ q_dot_results = state(:, 6:10);   % Joint velocities over time
 
 %% Test simulink model
 % Load the model
-load_system('SpaceRobotics_v1.slx')
+load_system('SpaceRobotics_v2.slx')
 
 time = (0:0.01:10)';  % Column vector of time from 0 to 10 seconds in 0.1 increments
 torque_values = ones(size(time));  % Constant torque of 1
@@ -44,18 +44,14 @@ torque_values = ones(size(time));  % Constant torque of 1
 torque_input = [time, torque_values, torque_values];
 
 %% Run the simulation
-simOut = sim('SpaceRobotics_v1', 'StopTime', '10');
+simOut = sim('SpaceRobotics_v2', 'StopTime', '10');
 
 % Access outputs
 theta0 = simOut.theta0;
 theta1 = simOut.theta1;
 theta2 = simOut.theta2;
 theta0_axis = simOut.theta0_axis;
-theta1_axis = simOut.theta1_axis;
-theta2_axis = simOut.theta2_axis;
 theta0_direction = reshape(theta0_axis.Data(3,1,:), [], size(theta0_axis.Data(3,1,:), 2));
-theta1_direction = reshape(theta1_axis.Data(3,1,:), [], size(theta1_axis.Data(3,1,:), 2));
-theta2_direction = reshape(theta2_axis.Data(3,1,:), [], size(theta2_axis.Data(3,1,:), 2));
 x = simOut.x;
 y = simOut.y;
 
@@ -76,7 +72,7 @@ legend('Simscape', 'Lagrangian'); % Add legend
 
 % Plot Theta1
 subplot(2, 3, 2);
-plot(theta1.Time, (theta1.Data - theta1.Data(1)) .* theta1_direction * 180 / pi);
+plot(theta1.Time, (theta1.Data) * 180 / pi);
 hold on
 plot(t, q_results(:, 4) * 180 / pi);
 hold off
@@ -87,7 +83,7 @@ legend('Simscape', 'Lagrangian'); % Add legend
 
 % Plot Theta2
 subplot(2, 3, 3);
-plot(theta2.Time, (theta2.Data) .* theta2_direction * 180 / pi);
+plot(theta2.Time, (theta2.Data) * 180 / pi);
 hold on
 plot(t, q_results(:, 5) * 180 / pi);
 hold off
