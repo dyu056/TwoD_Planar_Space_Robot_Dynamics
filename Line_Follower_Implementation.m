@@ -193,6 +193,7 @@ hold off
 xlabel('X_{end}');
 ylabel('Y_{end}');
 title('Trajectory Covered (X vs Y)');
+legend("End effector position","Reference")
 grid on;
 axis equal; % Ensure equal scaling for X and Y axes
 
